@@ -1,0 +1,414 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grind Lab Terminal</title>
+    <style>
+        :root {
+            --primary-color: #00ff41;
+            --secondary-color: #008f11;
+            --background-color: #001100;
+            --text-color: #00ff41;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: url('pixelwave.hr/wp-content/uploads/webp-converter-temp/tradingterminal.webp') no-repeat center center fixed;
+            background-size: cover;
+            overflow: hidden;
+        }
+
+        #matrix-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.5;
+        }
+
+        .terminal-window {
+            background: rgba(0, 17, 0, 0.9);
+            width: 850px;
+            height: 550px;
+            border: 2px solid var(--primary-color);
+            border-radius: 4px;
+            position: relative;
+            color: var(--text-color);
+            box-shadow: 
+                0 0 10px var(--primary-color), 
+                inset 0 0 10px var(--secondary-color);
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            font-size: 14px;
+        }
+
+        .terminal-header {
+            background: rgba(0, 17, 0, 0.9);
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--secondary-color);
+        }
+
+        .social-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .social-button {
+            background: transparent;
+            border: 1px solid var(--secondary-color);
+            border-radius: 2px;
+            padding: 5px 10px;
+            color: var(--text-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.8em;
+        }
+
+        .social-button:hover {
+            background: rgba(0, 255, 65, 0.1);
+            border-color: var(--text-color);
+        }
+
+        .terminal {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: rgba(0, 17, 0, 0.9);
+        }
+
+        .input-line {
+            display: flex;
+            margin-top: 10px;
+            border-top: 1px solid var(--secondary-color);
+            padding-top: 10px;
+        }
+
+        .prompt {
+            color: var(--text-color);
+            margin-right: 10px;
+        }
+
+        .command-input {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1em;
+            flex: 1;
+            outline: none;
+        }
+
+        .output-line {
+            margin: 5px 0;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        .output-line.error { color: #ff4444; }
+        .output-line.success { color: var(--text-color); }
+        .output-line.info { color: var(--secondary-color); }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 17, 0, 0.7);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--secondary-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-background" width="1900" height="900"></canvas>
+    <div class="terminal-window">
+        <div class="terminal-header">
+            <span>Grind Lab V16/zZ</span>
+            <div class="social-links">
+                <a href="https://t.me/QuantAI16Z" target="_blank" class="social-button">Telegram</a>
+                <a href="https://x.com/QuantAI16Z" target="_blank" class="social-button">Twitter</a>
+                <a href="https://pump.fun/coin/ChE21vTgrkTKr8zrt2SZMJs86epPQCDyLseKqH3Hpump" target="_blank" class="social-button">CA</a>
+            </div>
+        </div>
+        <div class="terminal">
+            <div class="history"><div class="output-line info">Initializing your first trade...</div><div class="output-line info">Type 'help' for available commands</div></div>
+            <div class="input-line">
+                <span class="prompt">&gt;</span>
+                <input type="text" class="command-input" autofocus="">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Matrix Background code
+        const canvas = document.getElementById('matrix-background');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン'.split('');
+        const drops = [];
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+
+        for (let i = 0; i < columns; i++) {
+            drops[i] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(0, 17, 0, 0.02)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'rgba(0, 255, 65, 0.8)';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const char = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        function animate() {
+            draw();
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        const terminal = {
+            history: document.querySelector('.history'),
+            input: document.querySelector('.command-input'),
+            commandHistory: [],
+            commandIndex: -1,
+
+            // Hardcoded QuantAI16Z token information
+            tokenInfo: {
+                name: "Trading Terminal",
+                symbol: "$QuantAI16Z",
+                totalSupply: "1,000,000,000",
+                decimals: "18",
+                contractAddress: "ChE21vTgrkTKr8zrt2SZMJs86epPQCDyLseKqH3Hpump",
+                price: "$0.000014",
+                holders: "Loading..."
+            },
+
+            // New helper function for generating simulated volume data
+            generateVolumeData() {
+                const tokens = [
+                    { symbol: '$DOGE', volume: 352, description: 'Potential Breakout' },
+                    { symbol: '$PEPE', volume: 276, description: 'High Movement' },
+                    { symbol: '$SHIB', volume: 195, description: 'Significant Interest' },
+                    { symbol: '$QuantAI16Z', volume: 87, description: 'Steady Increase' }
+                ];
+
+                return tokens.map(token => 
+                    `${token.symbol}: 24hr Volume +${token.volume}% (${token.description})`
+                ).join('\n');
+            },
+
+            // New helper function for generating insider trading data
+            generateInsiderData() {
+                const wallets = [
+                    { 
+                        address: '7x8zB...q2Kf', 
+                        action: 'Bought', 
+                        amount: '500,000', 
+                        value: '$75', 
+                        timestamp: '2 hours ago' 
+                    },
+                    { 
+                        address: 'bN4kY...sQjn', 
+                        action: 'Accumulated', 
+                        amount: '1,200,000', 
+                        value: '$168', 
+                        timestamp: '4 hours ago' 
+                    },
+                    { 
+                        address: 'gTb5x...Y6rw', 
+                        action: 'Partial Sell', 
+                        amount: '250,000', 
+                        value: '$35', 
+                        timestamp: '6 hours ago' 
+                    }
+                ];
+
+                return wallets.map(wallet => 
+                    `1. Wallet ${wallet.address}: 
+   - ${wallet.action} ${wallet.amount} $QuantAI16Z
+   - Transaction Value: ${wallet.value}
+   - Timestamp: ${wallet.timestamp}`
+                ).join('\n\n');
+            },
+
+            commands: {
+                help: () => ({
+                    text: `Available Commands:
+help              - Show this help message
+clear             - Clear terminal screen
+supply            - Show total supply of $QuantAI16Z token
+ticker            - Show token ticker/symbol
+info              - Show all $QuantAI16Z token information
+holders           - Show number of token holders
+tx                - Show recent transactions
+status            - Show terminal status
+scanvolume        - Scan for potential volume trades
+scaninsider       - Scan for new trades on insider wallets`,
+                    type: 'info'
+                }),
+
+                clear: () => {
+                    terminal.history.innerHTML = '';
+                    return { text: '', type: 'success' };
+                },
+
+                supply: () => ({ 
+                    text: `Total Supply: ${terminal.tokenInfo.totalSupply} ${terminal.tokenInfo.symbol}`,
+                    type: 'success'
+                }),
+
+                ticker: () => ({ 
+                    text: `Token Symbol: ${terminal.tokenInfo.symbol}`,
+                    type: 'success'
+                }),
+
+                info: () => ({
+                    text: `Token Information:
+Name: ${terminal.tokenInfo.name}
+Symbol: ${terminal.tokenInfo.symbol}
+Total Supply: ${terminal.tokenInfo.totalSupply}
+Decimals: ${terminal.tokenInfo.decimals}
+Contract: ${terminal.tokenInfo.contractAddress}`,
+                    type: 'info'
+                }),
+
+            
+                holders: () => ({ 
+                    text: `Total Holders: ${terminal.tokenInfo.holders}`, 
+                    type: 'success' 
+                }),
+
+                tx: () => ({
+                    text: `Recent Transactions:
+1. Bn4KYsAFd3tbM9kf3NgVMhGyCJX1EaRsQjnumsBwczhA: Buy 5415000 $QuantAI16Z
+2. nWEas68x83dpQ9CdQr1eU48kWhXXJNYuVcosYwaQe4m: Buy 4161000 $QuantAI16Z
+3. GtB5x82ENt4a5w2A1an356QkcVT54kE2sGV6zDaPY6rw: Sell 7464600 $QuantAI16Z`,
+                    type: 'info'
+                }),
+
+                status: () => ({
+                    text: `Terminal Status:
+Token: ${terminal.tokenInfo.name}
+Commands Run: ${terminal.commandHistory.length}
+Time: ${new Date().toLocaleString()}`,
+                    type: 'info'
+                }),
+
+                // New Volume Scan Command
+                scanvolume: () => ({ 
+                    text: `Volume Scan Results:
+${terminal.generateVolumeData()}
+
+Criteria:
+- Volume > 200% average
+- Consistent Buy Pressure
+- Liquidity Check Passed`,
+                    type: 'success'
+                }),
+
+                // New Insider Trading Scan Command
+                scaninsider: () => ({
+                    text: `Insider Trading Scan:
+${terminal.generateInsiderData()}
+
+Alert Levels:
+- High Accumulation Detected
+- Potential Price Movement Imminent`,
+                    type: 'info'
+                })
+            },
+
+            async handleCommand(input) {
+                const [cmd, ...args] = input.trim().split(' ');
+                const command = this.commands[cmd];
+                if (!command) return { text: `Unknown command: ${cmd}. Type 'help' for commands.`, type: 'error' };
+                return await command(args);
+            },
+
+            addLine(text, type = '') {
+                const line = document.createElement('div');
+                line.className = `output-line ${type}`;
+                line.textContent = text;
+                this.history.appendChild(line);
+                this.history.scrollTop = this.history.scrollHeight;
+            }
+        };
+
+        // Input handling
+        terminal.input.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                const input = terminal.input.value.trim();
+                if (input) {
+                    terminal.commandHistory.push(input);
+                    terminal.commandIndex = terminal.commandHistory.length;
+                    terminal.addLine('> ' + input);
+                    const result = await terminal.handleCommand(input);
+                    if (result.text) terminal.addLine(result.text, result.type);
+                }
+                terminal.input.value = '';
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (terminal.commandIndex > 0) {
+                    terminal.commandIndex--;
+                    terminal.input.value = terminal.commandHistory[terminal.commandIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (terminal.commandIndex < terminal.commandHistory.length - 1) {
+                    terminal.commandIndex++;
+                    terminal.input.value = terminal.commandHistory[terminal.commandIndex];
+                } else {
+                    terminal.commandIndex = terminal.commandHistory.length;
+                    terminal.input.value = '';
+                }
+            }
+        });
+
+        // Initial message
+        terminal.addLine('Initializing your first trade...', 'info');
+        terminal.addLine("Type 'help' for available commands", 'info');
+
+        // Keep focus on input
+        document.addEventListener('click', () => terminal.input.focus());
+    </script>
+
+</body></html>
